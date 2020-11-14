@@ -2,9 +2,11 @@
 
 IMAGE=${1}
 if [[ -z "${IMAGE}" ]]; then
-  echo "syntax: ${0} <container-image-name>"
+  echo "syntax: ${0} <container-image-name> [<size in mb>]"
   exit 1
 fi
+
+SIZE_MB=${2:-8192}
 
 set -e
 #set -x
@@ -58,7 +60,7 @@ ${SUDO} docker run \
      -v `pwd`/workspace:/workspace \
      -e DISK=/workspace/${IMAGE}.raw \
      -e SRC=/workspace/${IMAGE}.tar \
-     container-to-raw /makedisk.sh 
+     container-to-raw /makedisk.sh ${SIZE_MB}
 
 # Clean up
 rm workspace/${IMAGE}.tar

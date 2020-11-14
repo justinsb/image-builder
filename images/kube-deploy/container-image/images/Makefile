@@ -16,3 +16,8 @@ buster-aws: buster-base
 .PHONY: buster-gce
 buster-gce: buster-base
 	DOCKER_BUILDKIT=1 docker build -t buster-gce buster-gce/
+
+.PHONY: workstation
+workstation: buster-qemu
+	DOCKER_BUILDKIT=1 docker build -t workstation workstation/
+

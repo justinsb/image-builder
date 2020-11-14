@@ -5,10 +5,13 @@ set -o pipefail
 
 apt-get install --yes uuid-runtime
 
+SIZE_MB=${1:-8192}
+
 # Create a (sparse) 8 gig image
-dd if=/dev/null bs=1M seek=8192 of=${DISK}
+dd if=/dev/null bs=1M seek=${SIZE_MB} of=${DISK}
 
 
+MAIN_BLOCKS=$(expr $SIZE_MB \* 1024 \* 1024 / 512 - 2048 - 34)
 #Create partitions
 # Tip: sfdisk -l -d ${DISK} can print the instructions for an existing disk
 sfdisk ${DISK} <<EOF
@@ -17,7 +20,7 @@ unit: sectors
 first-lba: 34
 
 part1 : start=          34, size=        2014, type=21686148-6449-6E6F-744E-656564454649, name="primary"
-part2 : start=        2048, size=    16775135, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, name="root"
+part2 : start=        2048, size=    ${MAIN_BLOCKS}, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, name="root"
 EOF
 
 # TODO: Should we make sure that the FS UUID on part2 matches the partition UUID in the GPT table?
