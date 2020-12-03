@@ -6,13 +6,11 @@ if [[ -z "${IMAGE}" ]]; then
   exit 1
 fi
 
+PLATFORM=arm64
+
 set -e
 #set -x
 
-# DOCKER_BUILDKIT is much faster, but don't enable if explicity set to 0
-if [[ -z "${DOCKER_BUILDKIT}" ]]; then
-    export DOCKER_BUILDKIT=1
-fi
 
 # USER isn't set e.g. on cloudbuild
 if [[ -z "${USER}" ]]; then
@@ -20,10 +18,19 @@ if [[ -z "${USER}" ]]; then
     echo "USER set to ${USER}"
 fi
 
+# Don't use buildkit - doesn't work for multiarch
+# DOCKER_BUILDKIT is much faster, but don't enable if explicity set to 0
+#if [[ -z "${DOCKER_BUILDKIT}" ]]; then
+#    export DOCKER_BUILDKIT=1
+#fi
+
 ROOT=$(dirname "${BASH_SOURCE[0]}")
 
 echo "Building container-to-raw helper image"
-docker build -t container-to-raw ${ROOT}/images/container-to-raw
+docker build --pull --platform ${PLATFORM} -t container-to-raw-common-${PLATFORM} -f ${ROOT}/images/container-to-raw/Dockerfile.common ${ROOT}/images/container-to-raw
+docker build --platform ${PLATFORM} --build-arg BASE_IMAGE=container-to-raw-common-${PLATFORM} -t container-to-raw-${PLATFORM} -f ${ROOT}/images/container-to-raw/Dockerfile.${PLATFORM} ${ROOT}/images/container-to-raw
+
+
 
 # We need to export the image to a tarfile
 # The easiest way seems to be to run a dummy command, then dump the container
@@ -51,6 +58,7 @@ echo "Converting tarfile to raw disk"
 # --cap-add SYS_ADMIN is needed for mounting volumes
 # /dev:/dev is for loopback device partition discovery https://github.com/moby/moby/issues/27886
 ${SUDO} docker run \
+     -it \
      --privileged=true \
      --cap-add SYS_ADMIN \
      --security-opt apparmor:unconfined \
@@ -58,7 +66,7 @@ ${SUDO} docker run \
      -v `pwd`/workspace:/workspace \
      -e DISK=/workspace/${IMAGE}.raw \
      -e SRC=/workspace/${IMAGE}.tar \
-     container-to-raw /makedisk.sh 
+     container-to-raw-${PLATFORM} /makedisk.sh 
 
 # Clean up
 rm workspace/${IMAGE}.tar

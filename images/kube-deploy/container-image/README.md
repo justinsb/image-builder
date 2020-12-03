@@ -48,6 +48,42 @@ qemu-system-x86_64 -nographic -serial mon:stdio \
   -drive file=workspace/test.img \
   -m 512 --enable-kvm
 
+# You may need to install qemu-system-arm
+OVMFCODE=/usr/share/AAVMF/AAVMF_CODE.fd
+OVMFDATA=/usr/share/AAVMF/AAVMF_VARS.fd
+COPY_EFIVARS=workspace/test-arm64-efivars.fd
+cp $OVMFDATA $COPY_EFIVARS
+
+qemu-img create -f qcow2 -o backing_file=buster-qemu-arm64.raw workspace/test-arm64.img 20G
+qemu-system-aarch64 \
+  -nographic -serial mon:stdio \
+  -machine virt \
+  -netdev user,id=net0,net=192.168.76.0/24,dhcpstart=192.168.76.9 \
+  -device e1000,netdev=net0 \
+  -drive file=workspace/test-arm64.img \
+  -m 512
+
+
+
+qemu-img create -f qcow2 -o backing_file=buster-qemu-arm64.raw workspace/test-arm64.img 20G
+qemu-system-aarch64 -nographic \
+  -netdev user,id=net0,net=192.168.76.0/24,dhcpstart=192.168.76.9 -device e1000,netdev=net0 \
+  -object rng-random,filename=/dev/urandom,id=rng0 -device virtio-rng-pci,rng=rng0,id=rng-device0 \
+  -m 4096 \
+  -cpu max -machine virt \
+  -bios /usr/share/qemu-efi-aarch64/QEMU_EFI.fd \
+  -drive file=workspace/test-arm64.img,if=none,id=drive0,cache=writeback -device virtio-blk,drive=drive0
+
+     
+# WORKS
+qemu-system-aarch64 -nographic \
+  -net nic,model=virtio -net user \
+  -object rng-random,filename=/dev/urandom,id=rng0 -device virtio-rng-pci,rng=rng0,id=rng-device0 \
+  -m 1024 \
+  -cpu max -machine virt \
+  -pflash flash0.img -pflash flash1.img \
+  -drive file=workspace/test-arm64.img,if=none,id=drive0,cache=writeback -device virtio-blk,drive=drive0
+
 # To login, use username: root and password: root (defined in the buster-qemu image)
 
 # To quit: type Control-a and c to enter monitor mode, type "quit"

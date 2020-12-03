@@ -1,0 +1,17 @@
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+
+# Install kernel
+RUN apt-get -y install --no-install-recommends linux-image-amd64
+
+
+# Install and configure grub as our bootloader
+# noninteractive to avoid prompts because we aren't actually installing to a disk yet
+RUN DEBIAN_FRONTEND=noninteractive apt-get install --yes grub-pc
+ADD grub /etc/default/grub
+
+
+# Don't try to resume from swap.
+# TODO: Can we do this step as part of the kernel install?
+RUN echo "RESUME=none" > /etc/initramfs-tools/conf.d/resume
+RUN update-initramfs -u
