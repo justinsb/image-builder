@@ -1,0 +1,1 @@
+We create a new image per architecture, essentially a trick to enable cross-build.
